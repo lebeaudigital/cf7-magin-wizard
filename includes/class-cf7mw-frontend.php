@@ -79,6 +79,36 @@ final class CF7MW_Frontend {
     }
 
     /**
+     * Détermine si on doit activer le wizard pour le formulaire courant.
+     *
+     * @param int $form_id
+     * @param string $html
+     */
+    private function should_activate(int $form_id, string $html): bool {
+        $config = CF7MW_Config::get($form_id);
+
+        // Cas 1 : le wizard est explicitement activé via la metabox.
+        if (!empty($config['enabled'])) {
+            return true;
+        }
+
+        // Cas 2 : auto-activation si l'utilisateur a juste écrit [wizard-break]
+        //         sans encore avoir activé la case dans l'éditeur CF7.
+        if ($this->html_contains_break_marker($html)) {
+            return true;
+        }
+        return false;
+    }
+
+    private function html_contains_break_marker(string $html): bool {
+        if (str_contains($html, CF7MW_CF7_Integration::STEP_BREAK_MARKER)) {
+            return true;
+        }
+        // Texte brut [wizard-break] non interprété (filet de sécurité).
+        return (bool) preg_match('/\[wizard-break\b[^\]]*\]/i', $html);
+    }
+
+    /**
      * Ajoute la classe CSS cf7mw-form au <form> CF7 quand le wizard est actif.
      */
     public function maybe_add_form_class(string $class_attr): string {
@@ -86,9 +116,14 @@ final class CF7MW_Frontend {
         if (!$form) {
             return $class_attr;
         }
+        // On ne peut pas inspecter le HTML rendu ici, on se base sur la config.
         $config = CF7MW_Config::get($form->id());
-        if (empty($config['enabled']) || empty($config['steps'])) {
-            return $class_attr;
+        if (empty($config['enabled'])) {
+            // Inspecter le contenu brut pour détecter une auto-activation.
+            $form_content = (string) $form->prop('form');
+            if (stripos($form_content, '[wizard-break') === false) {
+                return $class_attr;
+            }
         }
         return trim($class_attr . ' cf7mw-form');
     }
@@ -102,13 +137,23 @@ final class CF7MW_Frontend {
             return $html;
         }
         $form_id = $form->id();
-        $config  = CF7MW_Config::get($form_id);
 
-        if (empty($config['enabled']) || empty($config['steps'])) {
+        if (!$this->should_activate($form_id, $html)) {
             return $html;
         }
 
-        // S'il n'y a pas de coupure d'étape dans le HTML rendu, le wizard ne peut pas fonctionner.
+        $config = CF7MW_Config::get($form_id);
+
+        // Filet de sécurité : si CF7 n'a pas interprété [wizard-break] (plugin
+        // chargé tardivement, version CF7 ancienne, cache), on substitue
+        // manuellement par le marqueur HTML.
+        $html = preg_replace(
+            '#(?:<p[^>]*>\s*)?\[wizard-break\b[^\]]*\](?:\s*</p>)?#i',
+            CF7MW_CF7_Integration::STEP_BREAK_MARKER,
+            $html
+        );
+
+        // Si après tout cela il n'y a toujours pas de coupure, on abandonne.
         if (!str_contains($html, CF7MW_CF7_Integration::STEP_BREAK_MARKER)) {
             return $html;
         }

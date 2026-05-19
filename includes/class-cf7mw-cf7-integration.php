@@ -26,20 +26,32 @@ final class CF7MW_CF7_Integration {
     }
 
     private function __construct() {
-        // Enregistrer le tag CF7 [wizard-break].
+        // Enregistrer le tag CF7 [wizard-break] dès que possible, et redonder
+        // sur 'init' pour tenir compte des thèmes qui chargent CF7 tardivement.
         add_action('wpcf7_init', [$this, 'register_form_tag']);
+        add_action('init',       [$this, 'register_form_tag'], 20);
 
         // Compter les étapes à partir du contenu du formulaire.
         add_filter('cf7mw_count_steps_from_content', [$this, 'count_steps_from_content'], 10, 1);
     }
 
     /**
-     * Enregistre le tag [wizard-break] auprès de CF7.
+     * Enregistre le tag [wizard-break] auprès de CF7. Idempotent : on ne
+     * réenregistre pas si CF7 le connaît déjà.
      */
     public function register_form_tag(): void {
         if (!function_exists('wpcf7_add_form_tag')) {
             return;
         }
+
+        // Évite la double inscription (qui déclencherait un notice CF7).
+        if (class_exists('WPCF7_FormTagsManager')) {
+            $manager = WPCF7_FormTagsManager::get_instance();
+            if (method_exists($manager, 'tag_type_supported') && $manager->tag_type_supported('wizard-break')) {
+                return;
+            }
+        }
+
         wpcf7_add_form_tag(
             ['wizard-break', 'wizard-break/'],
             [self::class, 'render_form_tag'],
