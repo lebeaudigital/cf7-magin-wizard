@@ -4,7 +4,7 @@ Tags: contact-form-7, multi-step, wizard, multistep, form
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 8.0
-Stable tag: 1.0.1
+Stable tag: 1.0.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -41,6 +41,13 @@ Insérez le tag `[wizard-break]` dans le contenu de votre formulaire entre les b
 Oui : chaque formulaire peut surcharger les couleurs globales.
 
 == Changelog ==
+
+= 1.0.2 =
+* Validation : les champs CF7 marqués `[text* …]`, `[email* …]`, `[tel* …]`, etc. bloquent désormais le passage à l'étape suivante quand ils sont vides (détection via `aria-required` et la classe `wpcf7-validates-as-required`).
+* Validation : revalidation en direct au fil de la frappe une fois qu'un champ est en erreur.
+* Validation : gestion correcte des groupes (checkbox/radio) et du type `file`.
+* Indicateur d'étapes : lignes connectrices repositionnées en `::before/::after` pour un alignement parfait (le dernier cercle n'est plus décalé).
+* Clearfix automatique sur les étapes : les thèmes utilisant `.column.one { float:left }` ne placent plus la barre de navigation à côté des champs.
 
 = 1.0.1 =
 * Auto-activation du wizard dès qu'au moins un `[wizard-break]` est présent dans le formulaire (plus besoin de cocher manuellement la case).

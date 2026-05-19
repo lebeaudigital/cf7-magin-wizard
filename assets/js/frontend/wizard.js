@@ -12,7 +12,7 @@
 
 import { splitFormIntoSteps } from './splitter.js';
 import { injectNavigation, showStep, scrollToWrapperTop } from './navigation.js';
-import { validateStep, clearValidation } from './validation.js';
+import { validateStep, clearValidation, attachLiveRevalidation } from './validation.js';
 import { updateIndicator, attachIndicatorClicks } from './indicator.js';
 import { updateProgress } from './progress.js';
 
@@ -39,6 +39,9 @@ class CF7MagicWizard {
         });
 
         attachIndicatorClicks(this.indicator, (i) => this.goTo(i));
+        // Une fois qu'un champ a été marqué invalide, on le revalide en direct
+        // pour effacer l'erreur dès que l'utilisateur corrige.
+        this.steps.forEach(stepEl => attachLiveRevalidation(stepEl));
         this.bindCF7Events();
 
         this.render();

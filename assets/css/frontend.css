@@ -40,6 +40,13 @@
 
 /* -----------------------------------------------------------------
  * Indicateur d'étapes (cercles + noms + lignes)
+ *
+ * Stratégie : chaque étape (li) occupe 1/N de la largeur, le cercle
+ * est centré dans son item. Les lignes connectrices sont peintes en
+ * ::before/::after sur chaque item — la ::before va du bord gauche
+ * de l'item jusqu'au centre du cercle, la ::after va du centre du
+ * cercle jusqu'au bord droit. Ainsi les lignes se rejoignent
+ * parfaitement, quel que soit le nombre d'étapes.
  * ----------------------------------------------------------------- */
 
 .cf7mw-indicator {
@@ -52,8 +59,7 @@
     margin: 0;
     display: flex;
     align-items: flex-start;
-    justify-content: space-between;
-    gap: 8px;
+    gap: 0;
 }
 
 .cf7mw-indicator__item {
@@ -66,13 +72,37 @@
     position: relative;
 }
 
-/* Bloc cercle + ligne horizontale qui rejoint l'étape suivante */
+/* Lignes connectrices : ::before relie au cercle précédent,
+   ::after relie au cercle suivant. Calées verticalement au centre
+   du cercle (top = moitié de sa hauteur). */
+.cf7mw-indicator__item::before,
+.cf7mw-indicator__item::after {
+    content: '';
+    position: absolute;
+    top: calc(var(--cf7mw-circle-size) / 2);
+    height: 2px;
+    margin-top: -1px;
+    background-color: var(--cf7mw-line-inactive);
+    z-index: 1;
+    transition: background-color var(--cf7mw-transition);
+}
+.cf7mw-indicator__item::before {
+    left: 0;
+    right: 50%;
+}
+.cf7mw-indicator__item::after {
+    left: 50%;
+    right: 0;
+}
+.cf7mw-indicator__item:first-child::before { display: none; }
+.cf7mw-indicator__item:last-child::after   { display: none; }
+
 .cf7mw-indicator__node {
-    width: 100%;
+    position: relative;
+    z-index: 2;
     display: flex;
     align-items: center;
     justify-content: center;
-    position: relative;
 }
 
 .cf7mw-indicator__circle {
@@ -90,30 +120,17 @@
     line-height: 1;
     transition: background-color var(--cf7mw-transition), color var(--cf7mw-transition), transform var(--cf7mw-transition), box-shadow var(--cf7mw-transition);
     position: relative;
-    z-index: 2;
+    z-index: 3;
     border: 2px solid transparent;
 }
 
-.cf7mw-indicator__number {
-    display: inline-block;
-}
+.cf7mw-indicator__number { display: inline-block; }
 
 .cf7mw-indicator__check {
     width: 60%;
     height: 60%;
     display: none;
     color: #ffffff;
-}
-
-.cf7mw-indicator__line {
-    flex: 1 1 auto;
-    height: 2px;
-    margin: 0 -1px;
-    background-color: var(--cf7mw-line-inactive);
-    position: relative;
-    overflow: hidden;
-    z-index: 1;
-    transition: background-color var(--cf7mw-transition);
 }
 
 .cf7mw-indicator__label {
@@ -125,6 +142,7 @@
     transition: color var(--cf7mw-transition);
     max-width: 100%;
     word-break: break-word;
+    padding: 0 4px;
 }
 
 .cf7mw-indicator__name {
@@ -140,7 +158,7 @@
     line-height: 1.3;
 }
 
-/* États : actif et complété */
+/* États : étape active */
 .cf7mw-indicator__item.is-active .cf7mw-indicator__circle {
     background-color: var(--cf7mw-circle-active);
     color: #ffffff;
@@ -149,18 +167,20 @@
 .cf7mw-indicator__item.is-active .cf7mw-indicator__label {
     color: var(--cf7mw-text-active);
 }
+/* La ligne arrivant sur l'étape active est colorée */
+.cf7mw-indicator__item.is-active::before {
+    background-color: var(--cf7mw-line-active);
+}
 
+/* États : étape complétée */
 .cf7mw-indicator__item.is-done .cf7mw-indicator__circle {
     background-color: var(--cf7mw-circle-done);
     color: #ffffff;
 }
-.cf7mw-indicator__item.is-done .cf7mw-indicator__number {
-    display: none;
-}
-.cf7mw-indicator__item.is-done .cf7mw-indicator__check {
-    display: inline-block;
-}
-.cf7mw-indicator__item.is-done .cf7mw-indicator__line {
+.cf7mw-indicator__item.is-done .cf7mw-indicator__number { display: none; }
+.cf7mw-indicator__item.is-done .cf7mw-indicator__check  { display: inline-block; }
+.cf7mw-indicator__item.is-done::before,
+.cf7mw-indicator__item.is-done::after {
     background-color: var(--cf7mw-line-active);
 }
 .cf7mw-indicator__item.is-done .cf7mw-indicator__label {
@@ -178,6 +198,14 @@
 .cf7mw-step.is-active {
     display: block;
 }
+/* Clearfix : indispensable car beaucoup de thèmes utilisent .column.one
+   { float:left; width:50% } à l'intérieur des formulaires, ce qui ferait
+   passer la barre de navigation à côté du dernier champ. */
+.cf7mw-step.is-active::after {
+    content: '';
+    display: table;
+    clear: both;
+}
 
 @keyframes cf7mw-fade-in {
     from { opacity: 0; transform: translateY(8px); }
@@ -185,6 +213,8 @@
 }
 
 .cf7mw-step__nav {
+    clear: both;
+    width: 100%;
     display: flex;
     align-items: center;
     justify-content: space-between;

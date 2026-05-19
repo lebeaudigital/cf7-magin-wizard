@@ -221,7 +221,6 @@ final class CF7MW_Frontend {
         $items = '';
 
         foreach ($steps as $index => $step) {
-            $is_last = ($index === $total - 1);
             $items .= '<li class="cf7mw-indicator__item' . ($index === 0 ? ' is-active' : '') . '" data-step="' . esc_attr((string) $index) . '">';
 
             $items .= '<div class="cf7mw-indicator__node">';
@@ -231,10 +230,6 @@ final class CF7MW_Frontend {
             }
             $items .= '<svg class="cf7mw-indicator__check" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4 4 10-10" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
             $items .= '</div>';
-
-            if (!$is_last) {
-                $items .= '<div class="cf7mw-indicator__line" aria-hidden="true"></div>';
-            }
             $items .= '</div>';
 
             if ($show_names) {
