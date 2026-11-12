@@ -15,7 +15,8 @@ if (!defined('ABSPATH')) {
 $steps    = !empty($config['steps']) ? $config['steps'] : [];
 $colors   = !empty($config['colors']) ? $config['colors'] : [];
 $enabled  = !empty($config['enabled']);
-$form_id  = $form->id();
+$form_id = $form->id();
+$form_id = (is_numeric($form_id) && (int) $form_id > 0) ? (int) $form_id : 0;
 ?>
 <div class="cf7mw-admin">
 

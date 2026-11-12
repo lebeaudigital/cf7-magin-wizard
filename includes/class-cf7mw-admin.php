@@ -81,7 +81,7 @@ final class CF7MW_Admin {
      * @param WPCF7_ContactForm $form
      */
     public function render_editor_panel($form): void {
-        $config = CF7MW_Config::get($form->id());
+        $config = CF7MW_Config::get(self::form_id($form));
         $settings = CF7MW_Settings::get_all();
         include CF7MW_DIR . 'templates/admin/editor-panel.php';
     }
@@ -92,10 +92,15 @@ final class CF7MW_Admin {
      * @param WPCF7_ContactForm $form
      */
     public function save_form_config($form): void {
-        if (!isset($_POST['cf7mw_nonce']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['cf7mw_nonce'])), 'cf7mw_save_' . $form->id())) {
+        $form_id = self::form_id($form);
+        // Formulaire pas encore enregistré : le hook part avant l'attribution de l'ID.
+        if ($form_id === 0) {
             return;
         }
-        if (!current_user_can('wpcf7_edit_contact_form', $form->id())) {
+        if (!isset($_POST['cf7mw_nonce']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['cf7mw_nonce'])), 'cf7mw_save_' . $form_id)) {
+            return;
+        }
+        if (!current_user_can('wpcf7_edit_contact_form', $form_id)) {
             return;
         }
 
@@ -107,7 +112,18 @@ final class CF7MW_Admin {
         // wp_unslash récursif sur les valeurs scalaires.
         $raw = wp_unslash($raw);
 
-        CF7MW_Config::save($form->id(), $raw);
+        CF7MW_Config::save($form_id, $raw);
+    }
+
+    /**
+     * Identifiant numérique du formulaire, ou 0 s'il n'est pas encore créé.
+     */
+    private static function form_id($form): int {
+        $form_id = (is_object($form) && method_exists($form, 'id')) ? $form->id() : 0;
+        if (!is_numeric($form_id) || (int) $form_id <= 0) {
+            return 0;
+        }
+        return (int) $form_id;
     }
 
     /* -----------------------------------------------------------------

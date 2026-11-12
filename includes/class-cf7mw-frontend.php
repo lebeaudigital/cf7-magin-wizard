@@ -84,7 +84,7 @@ final class CF7MW_Frontend {
      * @param int $form_id
      * @param string $html
      */
-    private function should_activate(int $form_id, string $html): bool {
+    private function should_activate(?int $form_id, string $html): bool {
         $config = CF7MW_Config::get($form_id);
 
         // Cas 1 : le wizard est explicitement activé via la metabox.

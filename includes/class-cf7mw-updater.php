@@ -108,8 +108,8 @@ final class CF7MW_Updater {
      *  Hooks WordPress
      * ----------------------------------------------------------------- */
 
-    public function check_update(object $transient): object {
-        if (empty($transient->checked)) {
+    public function check_update($transient) {
+        if (!is_object($transient) || empty($transient->checked)) {
             return $transient;
         }
 
@@ -148,8 +148,14 @@ final class CF7MW_Updater {
         return (string) ($release->zipball_url ?? '');
     }
 
-    public function plugin_info($result, string $action, object $args) {
-        if ($action !== 'plugin_information' || empty($args->slug) || $args->slug !== $this->slug) {
+    public function plugin_info($result, $action, $args) {
+        if (!is_string($action) || $action !== 'plugin_information') {
+            return $result;
+        }
+        if (is_array($args)) {
+            $args = (object) $args;
+        }
+        if (!is_object($args) || empty($args->slug) || $args->slug !== $this->slug) {
             return $result;
         }
 
@@ -193,7 +199,10 @@ final class CF7MW_Updater {
         return $out;
     }
 
-    public function post_install(bool $response, array $hook_extra, array $result): array {
+    public function post_install($response, $hook_extra, $result) {
+        if (!is_array($hook_extra) || !is_array($result)) {
+            return $result;
+        }
         global $wp_filesystem;
         if (!isset($hook_extra['plugin']) || $hook_extra['plugin'] !== $this->plugin_file) {
             return $result;
@@ -208,8 +217,11 @@ final class CF7MW_Updater {
         return $result;
     }
 
-    public function plugin_row_meta(array $links, string $file): array {
-        if ($file !== $this->plugin_file) {
+    public function plugin_row_meta($links, $file) {
+        if (!is_array($links)) {
+            $links = [];
+        }
+        if (!is_string($file) || $file !== $this->plugin_file) {
             return $links;
         }
         $links[] = '<a href="https://github.com/' . $this->github_username . '/' . $this->github_repo . '" target="_blank">' . __('GitHub', 'cf7-magic-wizard') . '</a>';
@@ -217,7 +229,10 @@ final class CF7MW_Updater {
         return $links;
     }
 
-    public function plugin_action_links(array $links): array {
+    public function plugin_action_links($links): array {
+        if (!is_array($links)) {
+            $links = [];
+        }
         $settings = '<a href="' . esc_url(admin_url('admin.php?page=cf7-magic-wizard')) . '">' . esc_html__('Réglages', 'cf7-magic-wizard') . '</a>';
         array_unshift($links, $settings);
 

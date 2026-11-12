@@ -27,9 +27,18 @@ final class CF7MW_Config {
     /**
      * Charge la configuration d'un formulaire CF7.
      *
+     * Un formulaire neuf (WPCF7_ContactForm::get_template()) n'a pas encore
+     * d'identifiant : id() vaut null. Dans ce cas on renvoie la configuration
+     * par défaut, sans lire de post meta.
+     *
      * @return array<string,mixed>
      */
-    public static function get(int $form_id): array {
+    public static function get(?int $form_id): array {
+        $form_id = self::form_id($form_id);
+        if ($form_id === 0) {
+            return self::with_defaults([]);
+        }
+
         $raw = get_post_meta($form_id, CF7MW_META_KEY, true);
         if (!is_array($raw)) {
             $raw = [];
@@ -40,11 +49,28 @@ final class CF7MW_Config {
     /**
      * Enregistre la configuration d'un formulaire CF7 (avec assainissement).
      *
+     * Sans identifiant numérique, aucune meta n'est écrite.
+     *
      * @param array<string,mixed> $config
      */
-    public static function save(int $form_id, array $config): bool {
+    public static function save(?int $form_id, array $config): bool {
+        $form_id = self::form_id($form_id);
+        if ($form_id === 0) {
+            return false;
+        }
+
         $clean = self::sanitize($config);
         return (bool) update_post_meta($form_id, CF7MW_META_KEY, $clean);
+    }
+
+    /**
+     * Identifiant de post utilisable. 0 = formulaire pas encore enregistré.
+     */
+    private static function form_id(?int $form_id): int {
+        if (!is_numeric($form_id) || (int) $form_id <= 0) {
+            return 0;
+        }
+        return (int) $form_id;
     }
 
     /**
