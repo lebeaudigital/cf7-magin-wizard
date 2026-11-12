@@ -68,13 +68,27 @@ final class CF7MW_CF7_Integration {
     }
 
     /**
+     * Nombre de tags [wizard-break] dans le modèle du formulaire.
+     */
+    public static function count_breaks(string $content): int {
+        $breaks = preg_match_all('/\[wizard-break\b[^\]]*\]/i', $content);
+        return ($breaks === false) ? 0 : (int) $breaks;
+    }
+
+    /**
+     * Nombre d'étapes : un séparateur crée une coupure, donc N séparateurs = N + 1 étapes.
+     * Sans séparateur, le formulaire n'est pas découpé (0).
+     */
+    public static function count_steps(string $content): int {
+        $breaks = self::count_breaks($content);
+        return $breaks > 0 ? $breaks + 1 : 0;
+    }
+
+    /**
      * Compte le nombre de blocs [wizard-break] dans le contenu d'un formulaire CF7.
      */
     public function count_steps_from_content(string $content): int {
-        $breaks = preg_match_all('/\[wizard-break\b[^\]]*\]/i', $content);
-        if ($breaks === false || $breaks === 0) {
-            return 1;
-        }
-        return $breaks + 1;
+        $steps = self::count_steps($content);
+        return $steps > 0 ? $steps : 1;
     }
 }

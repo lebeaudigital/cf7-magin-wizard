@@ -154,11 +154,7 @@ final class CF7MW_Config {
         }
 
         foreach (['show_progress_bar', 'show_step_numbers', 'show_step_names'] as $bool_key) {
-            if (!array_key_exists($bool_key, $config) || $config[$bool_key] === null || $config[$bool_key] === '') {
-                $clean[$bool_key] = null; // hérite du global
-            } else {
-                $clean[$bool_key] = !empty($config[$bool_key]) ? 1 : 0;
-            }
+            $clean[$bool_key] = !empty($config[$bool_key]) && (string) $config[$bool_key] !== '0' ? 1 : 0;
         }
 
         return $clean;

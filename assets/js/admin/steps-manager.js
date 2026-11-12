@@ -104,6 +104,40 @@ function attachDragAndDrop(listEl) {
     });
 }
 
+const FORM_FIELD = '#wpcf7-form';
+
+function breakCount(text) {
+    const found = String(text).match(/\[wizard-break\b[^\]]*\]/gi);
+    return found ? found.length : 0;
+}
+
+function syncFromForm(root) {
+    const field = document.querySelector(FORM_FIELD);
+    const listEl = root.querySelector(LIST_SELECTOR);
+    if (!field || !listEl) return;
+
+    const breaks = breakCount(field.value);
+    const needed = breaks > 0 ? breaks + 1 : 0;
+    const rows = [...listEl.querySelectorAll(ROW_SELECTOR)];
+
+    while (rows.length < needed) {
+        const row = buildStepRow(rows.length);
+        listEl.appendChild(row);
+        attachRemove(listEl, row);
+        rows.push(row);
+    }
+    while (rows.length > needed) {
+        rows.pop().remove();
+    }
+    reindexRows(listEl);
+
+    const counter = root.querySelector('[data-cf7mw-step-count]');
+    if (!counter) return;
+    counter.textContent = breaks === 0
+        ? 'Aucun [wizard-break] dans le formulaire. Ajoutez-en dans l\'onglet Formulaire pour créer des étapes.'
+        : `${breaks} séparateur${breaks > 1 ? 's' : ''} [wizard-break] : ${needed} étape${needed > 1 ? 's' : ''}.`;
+}
+
 function initRoot(root) {
     const listEl  = root.querySelector(LIST_SELECTOR);
     const addBtn  = root.querySelector(ADD_BTN_SELECTOR);
@@ -111,6 +145,7 @@ function initRoot(root) {
 
     listEl.querySelectorAll(ROW_SELECTOR).forEach(row => attachRemove(listEl, row));
     attachDragAndDrop(listEl);
+    syncFromForm(root);
 
     addBtn.addEventListener('click', () => {
         const nextIndex = listEl.querySelectorAll(ROW_SELECTOR).length;
@@ -122,7 +157,16 @@ function initRoot(root) {
 }
 
 function init() {
-    document.querySelectorAll(ROOT_SELECTOR).forEach(initRoot);
+    const roots = [...document.querySelectorAll(ROOT_SELECTOR)];
+    roots.forEach(initRoot);
+
+    const field = document.querySelector(FORM_FIELD);
+    if (field && field.dataset.cf7mwBound !== '1') {
+        field.dataset.cf7mwBound = '1';
+        field.addEventListener('input', () => {
+            document.querySelectorAll(ROOT_SELECTOR).forEach(syncFromForm);
+        });
+    }
 }
 
 if (document.readyState === 'loading') {

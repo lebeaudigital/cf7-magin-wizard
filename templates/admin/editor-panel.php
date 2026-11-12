@@ -12,11 +12,23 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-$steps    = !empty($config['steps']) ? $config['steps'] : [];
-$colors   = !empty($config['colors']) ? $config['colors'] : [];
-$enabled  = !empty($config['enabled']);
+$colors  = !empty($config['colors']) ? $config['colors'] : [];
+$enabled = !empty($config['enabled']);
 $form_id = $form->id();
 $form_id = (is_numeric($form_id) && (int) $form_id > 0) ? (int) $form_id : 0;
+
+$form_content = (string) $form->prop('form');
+$break_count  = CF7MW_CF7_Integration::count_breaks($form_content);
+$step_count   = CF7MW_CF7_Integration::count_steps($form_content);
+$steps        = array_values(is_array($config['steps'] ?? null) ? $config['steps'] : []);
+if ($step_count > 0) {
+    for ($i = count($steps); $i < $step_count; $i++) {
+        $steps[] = CF7MW_Config::default_step($i + 1);
+    }
+    $steps = array_slice($steps, 0, $step_count);
+} else {
+    $steps = [];
+}
 ?>
 <div class="cf7mw-admin">
 
@@ -27,9 +39,10 @@ $form_id = (is_numeric($form_id) && (int) $form_id > 0) ? (int) $form_id : 0;
         <p class="cf7mw-card__desc">
             <?php esc_html_e('Ajoutez le tag', 'cf7-magic-wizard'); ?>
             <code>[wizard-break]</code>
-            <?php esc_html_e('dans votre formulaire pour séparer les étapes. Configurez ensuite ci-dessous le nom et le libellé de bouton de chaque étape.', 'cf7-magic-wizard'); ?>
+            <?php esc_html_e('dans votre formulaire pour séparer les étapes. Le wizard ne s\'affiche sur le site que si la case ci-dessous est cochée.', 'cf7-magic-wizard'); ?>
         </p>
         <label class="cf7mw-toggle">
+            <input type="hidden" name="cf7mw[enabled]" value="0">
             <input type="checkbox" name="cf7mw[enabled]" value="1" <?php checked($enabled); ?>>
             <?php esc_html_e('Activer le wizard multi-étapes pour ce formulaire', 'cf7-magic-wizard'); ?>
         </label>
@@ -37,48 +50,37 @@ $form_id = (is_numeric($form_id) && (int) $form_id > 0) ? (int) $form_id : 0;
 
     <div class="cf7mw-card" data-cf7mw-steps-root>
         <h3 class="cf7mw-card__title"><?php esc_html_e('Étapes du formulaire', 'cf7-magic-wizard'); ?></h3>
-        <p class="cf7mw-card__desc">
-            <?php esc_html_e('Le nombre d\'étapes doit correspondre au nombre de blocs séparés par', 'cf7-magic-wizard'); ?>
-            <code>[wizard-break]</code>
-            (= <?php esc_html_e('nombre de séparateurs', 'cf7-magic-wizard'); ?> + 1).
-            <?php esc_html_e('Glissez les étapes pour les réordonner.', 'cf7-magic-wizard'); ?>
+        <p class="cf7mw-card__desc" data-cf7mw-step-count>
+            <?php
+            if ($break_count === 0) {
+                esc_html_e('Aucun [wizard-break] dans le formulaire. Ajoutez-en dans l\'onglet Formulaire pour créer des étapes.', 'cf7-magic-wizard');
+            } else {
+                echo esc_html(sprintf(
+                    '%d séparateur%s [wizard-break] : %d étape%s.',
+                    $break_count,
+                    $break_count > 1 ? 's' : '',
+                    $step_count,
+                    $step_count > 1 ? 's' : ''
+                ));
+            }
+            ?>
         </p>
         <ol class="cf7mw-steps-list" data-cf7mw-steps-list>
-            <?php if (empty($steps)) : ?>
-                <?php // Pré-remplir avec 3 étapes par défaut quand rien n'a été configuré ?>
-                <?php for ($i = 0; $i < 3; $i++) :
-                    $default = CF7MW_Config::default_step($i + 1); ?>
-                    <li class="cf7mw-step-row" draggable="true">
-                        <span class="cf7mw-step-row__handle" aria-hidden="true">≡</span>
-                        <input type="text" name="cf7mw[steps][<?php echo $i; ?>][name]"
-                               value="<?php echo esc_attr($default['name']); ?>"
-                               placeholder="<?php esc_attr_e('Nom de l\'étape', 'cf7-magic-wizard'); ?>">
-                        <input type="text" name="cf7mw[steps][<?php echo $i; ?>][subtitle]"
-                               value=""
-                               placeholder="<?php esc_attr_e('Sous-titre (facultatif)', 'cf7-magic-wizard'); ?>">
-                        <input type="text" name="cf7mw[steps][<?php echo $i; ?>][button]"
-                               value="<?php echo esc_attr($default['button']); ?>"
-                               placeholder="<?php esc_attr_e('Libellé du bouton', 'cf7-magic-wizard'); ?>">
-                        <button type="button" class="cf7mw-step-row__remove"><?php esc_html_e('Supprimer', 'cf7-magic-wizard'); ?></button>
-                    </li>
-                <?php endfor; ?>
-            <?php else : ?>
-                <?php foreach ($steps as $i => $step) : ?>
-                    <li class="cf7mw-step-row" draggable="true">
-                        <span class="cf7mw-step-row__handle" aria-hidden="true">≡</span>
-                        <input type="text" name="cf7mw[steps][<?php echo $i; ?>][name]"
-                               value="<?php echo esc_attr($step['name'] ?? ''); ?>"
-                               placeholder="<?php esc_attr_e('Nom de l\'étape', 'cf7-magic-wizard'); ?>">
-                        <input type="text" name="cf7mw[steps][<?php echo $i; ?>][subtitle]"
-                               value="<?php echo esc_attr($step['subtitle'] ?? ''); ?>"
-                               placeholder="<?php esc_attr_e('Sous-titre (facultatif)', 'cf7-magic-wizard'); ?>">
-                        <input type="text" name="cf7mw[steps][<?php echo $i; ?>][button]"
-                               value="<?php echo esc_attr($step['button'] ?? ''); ?>"
-                               placeholder="<?php esc_attr_e('Libellé du bouton', 'cf7-magic-wizard'); ?>">
-                        <button type="button" class="cf7mw-step-row__remove"><?php esc_html_e('Supprimer', 'cf7-magic-wizard'); ?></button>
-                    </li>
-                <?php endforeach; ?>
-            <?php endif; ?>
+            <?php foreach ($steps as $i => $step) : ?>
+                <li class="cf7mw-step-row" draggable="true">
+                    <span class="cf7mw-step-row__handle" aria-hidden="true">≡</span>
+                    <input type="text" name="cf7mw[steps][<?php echo (int) $i; ?>][name]"
+                           value="<?php echo esc_attr($step['name'] ?? ''); ?>"
+                           placeholder="<?php esc_attr_e('Nom de l\'étape', 'cf7-magic-wizard'); ?>">
+                    <input type="text" name="cf7mw[steps][<?php echo (int) $i; ?>][subtitle]"
+                           value="<?php echo esc_attr($step['subtitle'] ?? ''); ?>"
+                           placeholder="<?php esc_attr_e('Sous-titre (facultatif)', 'cf7-magic-wizard'); ?>">
+                    <input type="text" name="cf7mw[steps][<?php echo (int) $i; ?>][button]"
+                           value="<?php echo esc_attr($step['button'] ?? ''); ?>"
+                           placeholder="<?php esc_attr_e('Libellé du bouton', 'cf7-magic-wizard'); ?>">
+                    <button type="button" class="cf7mw-step-row__remove"><?php esc_html_e('Supprimer', 'cf7-magic-wizard'); ?></button>
+                </li>
+            <?php endforeach; ?>
         </ol>
         <button type="button" class="button cf7mw-add-step" data-cf7mw-add-step>
             <?php esc_html_e('+ Ajouter une étape', 'cf7-magic-wizard'); ?>
@@ -93,18 +95,20 @@ $form_id = (is_numeric($form_id) && (int) $form_id > 0) ? (int) $form_id : 0;
     <div class="cf7mw-card">
         <h3 class="cf7mw-card__title"><?php esc_html_e('Affichage', 'cf7-magic-wizard'); ?></h3>
         <div class="cf7mw-toggles">
-            <label class="cf7mw-toggle">
-                <input type="checkbox" name="cf7mw[show_progress_bar]" value="1" <?php checked(CF7MW_Config::resolve_bool($config, 'show_progress_bar')); ?>>
-                <?php esc_html_e('Afficher la barre de progression', 'cf7-magic-wizard'); ?>
-            </label>
-            <label class="cf7mw-toggle">
-                <input type="checkbox" name="cf7mw[show_step_numbers]" value="1" <?php checked(CF7MW_Config::resolve_bool($config, 'show_step_numbers')); ?>>
-                <?php esc_html_e('Afficher les numéros d\'étape', 'cf7-magic-wizard'); ?>
-            </label>
-            <label class="cf7mw-toggle">
-                <input type="checkbox" name="cf7mw[show_step_names]" value="1" <?php checked(CF7MW_Config::resolve_bool($config, 'show_step_names')); ?>>
-                <?php esc_html_e('Afficher les noms d\'étape', 'cf7-magic-wizard'); ?>
-            </label>
+            <?php
+            $display_flags = [
+                'show_progress_bar' => __('Afficher la barre de progression', 'cf7-magic-wizard'),
+                'show_step_numbers' => __('Afficher les numéros d\'étape', 'cf7-magic-wizard'),
+                'show_step_names'   => __('Afficher les noms d\'étape', 'cf7-magic-wizard'),
+            ];
+            foreach ($display_flags as $flag => $flag_label) :
+                ?>
+                <label class="cf7mw-toggle">
+                    <input type="hidden" name="cf7mw[<?php echo esc_attr($flag); ?>]" value="0">
+                    <input type="checkbox" name="cf7mw[<?php echo esc_attr($flag); ?>]" value="1" <?php checked(CF7MW_Config::resolve_bool($config, $flag)); ?>>
+                    <?php echo esc_html($flag_label); ?>
+                </label>
+            <?php endforeach; ?>
         </div>
     </div>
 

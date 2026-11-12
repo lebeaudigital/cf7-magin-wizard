@@ -85,19 +85,9 @@ final class CF7MW_Frontend {
      * @param string $html
      */
     private function should_activate(?int $form_id, string $html): bool {
+        unset($html);
         $config = CF7MW_Config::get($form_id);
-
-        // Cas 1 : le wizard est explicitement activé via la metabox.
-        if (!empty($config['enabled'])) {
-            return true;
-        }
-
-        // Cas 2 : auto-activation si l'utilisateur a juste écrit [wizard-break]
-        //         sans encore avoir activé la case dans l'éditeur CF7.
-        if ($this->html_contains_break_marker($html)) {
-            return true;
-        }
-        return false;
+        return !empty($config['enabled']);
     }
 
     private function html_contains_break_marker(string $html): bool {
@@ -116,14 +106,9 @@ final class CF7MW_Frontend {
         if (!$form) {
             return $class_attr;
         }
-        // On ne peut pas inspecter le HTML rendu ici, on se base sur la config.
         $config = CF7MW_Config::get($form->id());
         if (empty($config['enabled'])) {
-            // Inspecter le contenu brut pour détecter une auto-activation.
-            $form_content = (string) $form->prop('form');
-            if (stripos($form_content, '[wizard-break') === false) {
-                return $class_attr;
-            }
+            return $class_attr;
         }
         return trim($class_attr . ' cf7mw-form');
     }
