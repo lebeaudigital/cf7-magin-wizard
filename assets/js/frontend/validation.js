@@ -29,7 +29,7 @@ export function validateStep(stepEl) {
     const processedNames = new Set();
 
     fields.forEach(field => {
-        if (field.disabled) return;
+        if (field.disabled || field.closest('.cf7mw-is-hidden')) return;
         const type = (field.type || '').toLowerCase();
         if (type === 'submit' || type === 'button' || type === 'reset' || type === 'hidden') return;
 

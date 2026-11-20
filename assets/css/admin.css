@@ -141,6 +141,80 @@
 }
 
 /* -----------------------------------------------------------------
+ * Conditions
+ * ----------------------------------------------------------------- */
+
+.cf7mw-rules {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.cf7mw-rule {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 14px;
+    background: #f6f7f7;
+    border: 1px solid #dcdcde;
+    border-radius: 8px;
+}
+
+.cf7mw-rule__word {
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.cf7mw-rule select,
+.cf7mw-rule input[type="text"] {
+    min-width: 140px;
+    max-width: 220px;
+}
+
+.cf7mw-rule__value {
+    display: contents;
+}
+
+.cf7mw-rule.is-valueless .cf7mw-rule__value {
+    display: none;
+}
+
+.cf7mw-rule__remove {
+    margin-left: auto;
+    border: 0;
+    background: transparent;
+    color: #b32d2e;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 4px 8px;
+}
+
+.cf7mw-rule__summary {
+    flex: 1 0 100%;
+    margin: 0;
+    color: #50575e;
+    font-size: 13px;
+}
+
+@media (max-width: 782px) {
+    .cf7mw-rule {
+        align-items: stretch;
+    }
+    .cf7mw-rule select,
+    .cf7mw-rule input[type="text"] {
+        max-width: none;
+        width: 100%;
+    }
+    .cf7mw-rule__remove {
+        margin-left: 0;
+        align-self: flex-end;
+    }
+}
+
+/* -----------------------------------------------------------------
  * Color picker grid
  * ----------------------------------------------------------------- */
 

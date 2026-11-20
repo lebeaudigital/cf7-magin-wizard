@@ -87,10 +87,12 @@ final class CF7MW_Config {
             'show_progress_bar' => null,
             'show_step_numbers' => null,
             'show_step_names'   => null,
+            'rules'             => [],
         ];
         $merged = array_merge($defaults, $config);
         $merged['steps']  = is_array($merged['steps'])  ? array_values($merged['steps']) : [];
         $merged['colors'] = is_array($merged['colors']) ? $merged['colors'] : [];
+        $merged['rules']  = is_array($merged['rules'])  ? array_values($merged['rules']) : [];
         return $merged;
     }
 
@@ -156,6 +158,9 @@ final class CF7MW_Config {
         foreach (['show_progress_bar', 'show_step_numbers', 'show_step_names'] as $bool_key) {
             $clean[$bool_key] = !empty($config[$bool_key]) && (string) $config[$bool_key] !== '0' ? 1 : 0;
         }
+
+        $rules = $config['rules'] ?? [];
+        $clean['rules'] = CF7MW_Conditions::sanitize_rules(is_array($rules) ? $rules : []);
 
         return $clean;
     }

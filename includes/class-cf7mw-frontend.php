@@ -50,6 +50,13 @@ final class CF7MW_Frontend {
             CF7MW_VERSION,
             true
         );
+        wp_register_script(
+            'cf7-magic-wizard-conditions',
+            CF7MW_URL . 'assets/js/frontend/conditions.js',
+            [],
+            CF7MW_VERSION,
+            true
+        );
         // Charger comme module ES6 pour utiliser les imports.
         add_filter('script_loader_tag', [$this, 'mark_module_scripts'], 10, 3);
     }
@@ -58,7 +65,7 @@ final class CF7MW_Frontend {
      * Transforme nos scripts en modules ES6 (attribut type="module").
      */
     public function mark_module_scripts(string $tag, string $handle, string $src): string {
-        if (!in_array($handle, ['cf7-magic-wizard-frontend'], true)) {
+        if (!in_array($handle, ['cf7-magic-wizard-frontend', 'cf7-magic-wizard-conditions'], true)) {
             return $tag;
         }
         if (str_contains($tag, ' type=')) {
@@ -69,13 +76,19 @@ final class CF7MW_Frontend {
         return $tag;
     }
 
-    private function enqueue_assets(): void {
-        if ($this->assets_enqueued) {
-            return;
+    private function enqueue_assets(bool $wizard, bool $conditions): void {
+        if ($wizard || $conditions) {
+            wp_enqueue_style('cf7-magic-wizard-frontend');
         }
-        wp_enqueue_style('cf7-magic-wizard-frontend');
-        wp_enqueue_script('cf7-magic-wizard-frontend');
-        $this->assets_enqueued = true;
+        if ($wizard && !$this->assets_enqueued) {
+            wp_enqueue_script('cf7-magic-wizard-frontend');
+        }
+        if ($conditions) {
+            wp_enqueue_script('cf7-magic-wizard-conditions');
+        }
+        if ($wizard) {
+            $this->assets_enqueued = true;
+        }
     }
 
     /**
@@ -122,12 +135,17 @@ final class CF7MW_Frontend {
             return $html;
         }
         $form_id = $form->id();
+        $config  = CF7MW_Config::get($form_id);
+        $rules   = is_array($config['rules'] ?? null) ? $config['rules'] : [];
+        $conditions_html = $rules !== [] ? $this->render_conditions_config($rules) : '';
 
         if (!$this->should_activate($form_id, $html)) {
+            if ($conditions_html !== '') {
+                $this->enqueue_assets(false, true);
+                return $html . $conditions_html;
+            }
             return $html;
         }
-
-        $config = CF7MW_Config::get($form_id);
 
         // Filet de sécurité : si CF7 n'a pas interprété [wizard-break] (plugin
         // chargé tardivement, version CF7 ancienne, cache), on substitue
@@ -140,10 +158,14 @@ final class CF7MW_Frontend {
 
         // Si après tout cela il n'y a toujours pas de coupure, on abandonne.
         if (!str_contains($html, CF7MW_CF7_Integration::STEP_BREAK_MARKER)) {
+            if ($conditions_html !== '') {
+                $this->enqueue_assets(false, true);
+                return $html . $conditions_html;
+            }
             return $html;
         }
 
-        $this->enqueue_assets();
+        $this->enqueue_assets(true, $conditions_html !== '');
 
         $steps_config = $this->normalize_steps_config($config['steps'], $html);
         $colors       = CF7MW_Config::resolve_colors($config);
@@ -174,8 +196,20 @@ final class CF7MW_Frontend {
         $output .= $progress_html;
         $output .= '<script type="application/json" class="cf7mw-config">' . $config_json . '</script>';
         $output .= '</div>';
+        $output .= $conditions_html;
 
         return $output;
+    }
+
+    /**
+     * @param array<int,array<string,string>> $rules
+     */
+    private function render_conditions_config(array $rules): string {
+        $json = wp_json_encode($rules, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+        if (!is_string($json)) {
+            return '';
+        }
+        return '<script type="application/json" class="cf7mw-conditions">' . $json . '</script>';
     }
 
     /**

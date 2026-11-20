@@ -74,6 +74,10 @@ final class CF7MW_Admin {
             'title'    => __('Magic Wizard', 'cf7-magic-wizard'),
             'callback' => [$this, 'render_editor_panel'],
         ];
+        $panels['cf7mw-conditions'] = [
+            'title'    => __('Conditions', 'cf7-magic-wizard'),
+            'callback' => [$this, 'render_conditions_panel'],
+        ];
         return $panels;
     }
 
@@ -84,6 +88,14 @@ final class CF7MW_Admin {
         $config = CF7MW_Config::get(self::form_id($form));
         $settings = CF7MW_Settings::get_all();
         include CF7MW_DIR . 'templates/admin/editor-panel.php';
+    }
+
+    /**
+     * @param WPCF7_ContactForm $form
+     */
+    public function render_conditions_panel($form): void {
+        $config = CF7MW_Config::get(self::form_id($form));
+        include CF7MW_DIR . 'templates/admin/conditions-panel.php';
     }
 
     /**
@@ -206,6 +218,13 @@ final class CF7MW_Admin {
             true
         );
         wp_enqueue_script(
+            'cf7-magic-wizard-admin-conditions',
+            CF7MW_URL . 'assets/js/admin/conditions-manager.js',
+            [],
+            CF7MW_VERSION,
+            true
+        );
+        wp_enqueue_script(
             'cf7-magic-wizard-admin-settings',
             CF7MW_URL . 'assets/js/admin/settings.js',
             ['jquery'],
@@ -239,7 +258,7 @@ final class CF7MW_Admin {
     }
 
     public function mark_module_scripts(string $tag, string $handle, string $src): string {
-        $module_handles = ['cf7-magic-wizard-admin-steps', 'cf7-magic-wizard-admin-settings'];
+        $module_handles = ['cf7-magic-wizard-admin-steps', 'cf7-magic-wizard-admin-settings', 'cf7-magic-wizard-admin-conditions'];
         if (!in_array($handle, $module_handles, true)) {
             return $tag;
         }

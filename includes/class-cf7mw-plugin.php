@@ -33,6 +33,7 @@ final class CF7MW_Plugin {
         // Helpers et modèles.
         require_once CF7MW_DIR . 'includes/class-cf7mw-settings.php';
         require_once CF7MW_DIR . 'includes/class-cf7mw-config.php';
+        require_once CF7MW_DIR . 'includes/class-cf7mw-conditions.php';
 
         // Intégration Contact Form 7 (tag personnalisé, splitter).
         require_once CF7MW_DIR . 'includes/class-cf7mw-cf7-integration.php';
@@ -66,6 +67,7 @@ final class CF7MW_Plugin {
             }
 
             CF7MW_CF7_Integration::get_instance();
+            CF7MW_Conditions::get_instance();
             CF7MW_Frontend::get_instance();
 
             if (is_admin()) {
