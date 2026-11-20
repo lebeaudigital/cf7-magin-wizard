@@ -85,7 +85,7 @@ final class CF7MW_Conditions {
                 continue;
             }
             $source   = self::field_name((string) ($rule['source'] ?? ''));
-            $target   = self::field_name((string) ($rule['target'] ?? ''));
+            $targets  = self::rule_targets($rule, $source);
             $operator = (string) ($rule['operator'] ?? 'equals');
             $action   = (string) ($rule['action'] ?? 'show');
             if (!isset(self::OPERATORS[$operator])) {
@@ -94,7 +94,7 @@ final class CF7MW_Conditions {
             if (!isset(self::ACTIONS[$action])) {
                 $action = 'show';
             }
-            if ($source === '' || $target === '' || $source === $target) {
+            if ($source === '' || $targets === []) {
                 continue;
             }
             $clean[] = [
@@ -102,7 +102,7 @@ final class CF7MW_Conditions {
                 'operator' => $operator,
                 'value'    => sanitize_text_field((string) ($rule['value'] ?? '')),
                 'action'   => $action,
-                'target'   => $target,
+                'targets'  => $targets,
             ];
         }
         return $clean;
@@ -118,11 +118,9 @@ final class CF7MW_Conditions {
     public static function hidden_targets(array $rules, array $posted): array {
         $grouped = [];
         foreach ($rules as $rule) {
-            $target = (string) ($rule['target'] ?? '');
-            if ($target === '') {
-                continue;
+            foreach (self::rule_targets($rule, (string) ($rule['source'] ?? '')) as $target) {
+                $grouped[$target][] = $rule;
             }
-            $grouped[$target][] = $rule;
         }
 
         $hidden = [];
@@ -155,6 +153,33 @@ final class CF7MW_Conditions {
         }
 
         return $hidden;
+    }
+
+    /**
+     * Champs visés par une règle. Accepte l'ancien champ unique `target`.
+     *
+     * @param array<string,mixed> $rule
+     * @return string[]
+     */
+    private static function rule_targets(array $rule, string $source): array {
+        $names = [];
+        if (isset($rule['targets']) && is_array($rule['targets'])) {
+            foreach ($rule['targets'] as $name) {
+                $names[] = self::field_name((string) $name);
+            }
+        }
+        if (!empty($rule['target'])) {
+            $names[] = self::field_name((string) $rule['target']);
+        }
+
+        $unique = [];
+        foreach ($names as $name) {
+            if ($name === '' || $name === $source || in_array($name, $unique, true)) {
+                continue;
+            }
+            $unique[] = $name;
+        }
+        return $unique;
     }
 
     /**

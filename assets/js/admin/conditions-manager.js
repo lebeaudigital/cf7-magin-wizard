@@ -176,6 +176,60 @@ function valueControl(index, value, field) {
     return `<input type="text" name="cf7mw[rules][${index}][value]" data-part="value" value="${escapeHtml(value)}" placeholder="${escapeHtml('Valeur')}">`;
 }
 
+function targetItem(index, selected, fields, removable) {
+    return `<span class="cf7mw-rule__target">
+        <select name="cf7mw[rules][${index}][targets][]" data-part="target">${fieldOptions(fields, selected, 'Choisir un champ')}</select>
+        <button type="button" class="cf7mw-rule__target-remove" data-cf7mw-remove-target aria-label="Retirer ce champ"${removable ? '' : ' hidden'}>×</button>
+    </span>`;
+}
+
+function targetsMarkup(index, targets, fields) {
+    const list = targets.length ? targets : [''];
+    const removable = list.length > 1;
+    return `<span class="cf7mw-rule__targets" data-part="targets">${list.map(name => targetItem(index, name, fields, removable)).join('')}
+        <button type="button" class="cf7mw-rule__add-target" data-cf7mw-add-target aria-label="Ajouter un champ">+</button>
+    </span>`;
+}
+
+function syncTargetRemoves(row) {
+    const items = row.querySelectorAll('.cf7mw-rule__target');
+    items.forEach(item => {
+        const button = item.querySelector('[data-cf7mw-remove-target]');
+        if (button) button.hidden = items.length < 2;
+    });
+}
+
+function addTargetSelect(row) {
+    const group = row.querySelector('[data-part="targets"]');
+    const first = group?.querySelector('[data-part="target"]');
+    const add = group?.querySelector('[data-cf7mw-add-target]');
+    if (!group || !add) return;
+    const item = document.createElement('span');
+    item.className = 'cf7mw-rule__target';
+    const select = document.createElement('select');
+    select.dataset.part = 'target';
+    select.name = first?.name || 'cf7mw[rules][0][targets][]';
+    if (first) {
+        [...first.options].forEach(option => {
+            const copy = option.cloneNode(true);
+            copy.selected = false;
+            select.appendChild(copy);
+        });
+    } else {
+        select.innerHTML = '<option value="">Choisir un champ</option>';
+    }
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'cf7mw-rule__target-remove';
+    button.dataset.cf7mwRemoveTarget = '';
+    button.setAttribute('aria-label', 'Retirer ce champ');
+    button.textContent = '×';
+    item.append(select, button);
+    group.insertBefore(item, add);
+    syncTargetRemoves(row);
+    select.focus();
+}
+
 function buildRule(index, rule, fields) {
     const row = document.createElement('div');
     row.className = 'cf7mw-rule';
@@ -188,7 +242,7 @@ function buildRule(index, rule, fields) {
         <span class="cf7mw-rule__value" data-part="value-wrap"></span>
         <span class="cf7mw-rule__word">alors</span>
         <select name="cf7mw[rules][${index}][action]" data-part="action">${actionOptions(rule.action || 'show')}</select>
-        <select name="cf7mw[rules][${index}][target]" data-part="target">${fieldOptions(fields, rule.target || '', 'Choisir un champ')}</select>
+        ${targetsMarkup(index, rule.targets || (rule.target ? [rule.target] : ['']), fields)}
         <button type="button" class="cf7mw-rule__remove" data-cf7mw-remove-rule aria-label="Supprimer cette condition">×</button>
         <p class="cf7mw-rule__summary" data-part="summary"></p>
     `;
@@ -207,7 +261,7 @@ function readRule(row) {
         operator: value('operator') || 'equals',
         value: value('value'),
         action: value('action') || 'show',
-        target: value('target'),
+        targets: [...row.querySelectorAll('[data-part="target"]')].map(select => select.value).filter(Boolean),
     };
 }
 
@@ -219,20 +273,26 @@ function updateSummary(row, fields) {
     const rule = readRule(row);
     const summary = row.querySelector('[data-part="summary"]');
     if (!summary) return;
-    if (!rule.source || !rule.target) {
-        summary.textContent = 'Choisissez le champ qui déclenche la condition, puis le champ à afficher ou masquer.';
+    if (!rule.source || rule.targets.length === 0) {
+        summary.textContent = 'Choisissez le champ qui déclenche la condition, puis les champs à afficher ou masquer.';
         return;
     }
     const source = fieldLabel(fields, rule.source);
-    const target = fieldLabel(fields, rule.target);
-    const action = rule.action === 'hide' ? 'se masque' : 's’affiche';
+    const labels = rule.targets.map(name => fieldLabel(fields, name));
+    const listed = labels.length === 1
+        ? `« ${labels[0]} »`
+        : `${labels.slice(0, -1).map(label => `« ${label} »`).join(', ')} et « ${labels.at(-1)} »`;
+    const plural = labels.length > 1;
+    const action = rule.action === 'hide'
+        ? (plural ? 'se masquent' : 'se masque')
+        : (plural ? 's’affichent' : 's’affiche');
     const operator = OPERATORS.find(([value]) => value === rule.operator)?.[1] || 'est';
     if (VALUELESS.has(rule.operator)) {
-        summary.textContent = `« ${target} » ${action} quand « ${source} » ${operator}.`;
+        summary.textContent = `${listed} ${action} quand « ${source} » ${operator}.`;
         return;
     }
     const shown = rule.value || '…';
-    summary.textContent = `« ${target} » ${action} quand « ${source} » ${operator} « ${shown} ».`;
+    summary.textContent = `${listed} ${action} quand « ${source} » ${operator} « ${shown} ».`;
 }
 
 function refreshValueControl(row, fields) {
@@ -265,11 +325,26 @@ function bindRule(row, list, fields) {
     });
     row.addEventListener('input', redraw);
     row.addEventListener('change', redraw);
+    row.addEventListener('click', (event) => {
+        if (event.target.closest('[data-cf7mw-add-target]')) {
+            addTargetSelect(row);
+            reindex(list);
+            redraw();
+        }
+        const removeTarget = event.target.closest('[data-cf7mw-remove-target]');
+        if (removeTarget && row.querySelectorAll('.cf7mw-rule__target').length > 1) {
+            removeTarget.closest('.cf7mw-rule__target')?.remove();
+            syncTargetRemoves(row);
+            reindex(list);
+            redraw();
+        }
+    });
     row.querySelector('[data-cf7mw-remove-rule]')?.addEventListener('click', () => {
         row.remove();
         reindex(list);
     });
     redraw();
+    syncTargetRemoves(row);
 }
 
 function refreshFieldLists(root, fields) {

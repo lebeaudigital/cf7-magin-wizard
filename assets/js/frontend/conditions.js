@@ -60,12 +60,19 @@ function matches(rule, form) {
     }
 }
 
+function ruleTargets(rule) {
+    const names = Array.isArray(rule.targets) ? rule.targets.slice() : [];
+    if (rule.target) names.push(rule.target);
+    return [...new Set(names.filter(Boolean))];
+}
+
 function hiddenTargets(rules, form) {
     const grouped = new Map();
     rules.forEach(rule => {
-        if (!rule.target) return;
-        if (!grouped.has(rule.target)) grouped.set(rule.target, []);
-        grouped.get(rule.target).push(rule);
+        ruleTargets(rule).forEach(target => {
+            if (!grouped.has(target)) grouped.set(target, []);
+            grouped.get(target).push(rule);
+        });
     });
 
     const hidden = new Set();
@@ -113,7 +120,7 @@ function setHidden(block, hidden) {
 }
 
 function apply(form, rules) {
-    const targets = new Set(rules.map(rule => rule.target).filter(Boolean));
+    const targets = new Set(rules.flatMap(ruleTargets));
     const hidden = hiddenTargets(rules, form);
     targets.forEach(name => {
         const block = fieldBlock(form, name);

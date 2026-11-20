@@ -26,6 +26,15 @@ $condition_rules  = is_array($config['rules'] ?? null) ? $config['rules'] : [];
                 $operator    = (string) ($rule['operator'] ?? 'equals');
                 $action      = (string) ($rule['action'] ?? 'show');
                 $needs_value = !in_array($operator, ['empty', 'not_empty'], true);
+                $targets = [];
+                if (!empty($rule['targets']) && is_array($rule['targets'])) {
+                    $targets = array_values($rule['targets']);
+                } elseif (!empty($rule['target'])) {
+                    $targets = [$rule['target']];
+                }
+                if ($targets === []) {
+                    $targets = [''];
+                }
                 ?>
                 <div class="cf7mw-rule<?php echo $needs_value ? '' : ' is-valueless'; ?>" data-cf7mw-rule>
                     <span class="cf7mw-rule__word"><?php esc_html_e('Si', 'cf7-magic-wizard'); ?></span>
@@ -51,14 +60,22 @@ $condition_rules  = is_array($config['rules'] ?? null) ? $config['rules'] : [];
                             <option value="<?php echo esc_attr($action_value); ?>" <?php selected($action, $action_value); ?>><?php echo esc_html($action_label); ?></option>
                         <?php endforeach; ?>
                     </select>
-                    <select name="cf7mw[rules][<?php echo (int) $index; ?>][target]" data-part="target">
-                        <option value=""><?php esc_html_e('Choisir un champ', 'cf7-magic-wizard'); ?></option>
-                        <?php foreach ($condition_fields as $field) : ?>
-                            <option value="<?php echo esc_attr($field['name']); ?>" <?php selected($rule['target'] ?? '', $field['name']); ?>>
-                                <?php echo esc_html($field['label']); ?>
-                            </option>
+                    <span class="cf7mw-rule__targets" data-part="targets">
+                        <?php foreach ($targets as $target_name) : ?>
+                            <span class="cf7mw-rule__target">
+                                <select name="cf7mw[rules][<?php echo (int) $index; ?>][targets][]" data-part="target">
+                                    <option value=""><?php esc_html_e('Choisir un champ', 'cf7-magic-wizard'); ?></option>
+                                    <?php foreach ($condition_fields as $field) : ?>
+                                        <option value="<?php echo esc_attr($field['name']); ?>" <?php selected((string) $target_name, $field['name']); ?>>
+                                            <?php echo esc_html($field['label']); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <button type="button" class="cf7mw-rule__target-remove" data-cf7mw-remove-target aria-label="<?php esc_attr_e('Retirer ce champ', 'cf7-magic-wizard'); ?>" <?php echo count($targets) < 2 ? 'hidden' : ''; ?>>×</button>
+                            </span>
                         <?php endforeach; ?>
-                    </select>
+                        <button type="button" class="cf7mw-rule__add-target" data-cf7mw-add-target aria-label="<?php esc_attr_e('Ajouter un champ', 'cf7-magic-wizard'); ?>">+</button>
+                    </span>
                     <button type="button" class="cf7mw-rule__remove" data-cf7mw-remove-rule aria-label="<?php esc_attr_e('Supprimer cette condition', 'cf7-magic-wizard'); ?>">×</button>
                     <p class="cf7mw-rule__summary" data-part="summary"></p>
                 </div>
@@ -68,7 +85,7 @@ $condition_rules  = is_array($config['rules'] ?? null) ? $config['rules'] : [];
             <?php esc_html_e('+ Ajouter une condition', 'cf7-magic-wizard'); ?>
         </button>
         <p class="cf7mw-help">
-            <?php esc_html_e('Plusieurs « afficher » sur le même champ : une seule condition suffit. « Masquer » l’emporte si sa condition est remplie.', 'cf7-magic-wizard'); ?>
+            <?php esc_html_e('Le bouton + ajoute un autre champ à la même condition. Plusieurs « afficher » sur le même champ : une seule condition suffit. « Masquer » l’emporte si sa condition est remplie.', 'cf7-magic-wizard'); ?>
         </p>
     </div>
 </div>
