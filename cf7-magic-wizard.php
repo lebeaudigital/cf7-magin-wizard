@@ -3,7 +3,7 @@
  * Plugin Name: CF7 Magic Wizard
  * Plugin URI: https://github.com/lebeaudigital/cf7-magin-wizard
  * Description: Transformez vos formulaires Contact Form 7 en assistants multi-étapes, et affichez ou masquez des champs selon les réponses, sans écrire de code.
- * Version: 1.1.1
+ * Version: 1.1.2
  * Author: Le Beau Digital
  * Author URI: https://lebeaudigital.com
  * License: GPL v2 or later
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('CF7MW_VERSION', '1.1.1');
+define('CF7MW_VERSION', '1.1.2');
 define('CF7MW_FILE', __FILE__);
 define('CF7MW_DIR', plugin_dir_path(__FILE__));
 define('CF7MW_URL', plugin_dir_url(__FILE__));

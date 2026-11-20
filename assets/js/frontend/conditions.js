@@ -91,16 +91,36 @@ function hiddenTargets(rules, form) {
 }
 
 function fieldBlock(form, name) {
-    const wrap = form.querySelector(`.wpcf7-form-control-wrap[data-name="${cssEscape(name)}"]`);
-    if (!wrap) {
-        const field = form.querySelector(`[name="${cssEscape(name)}"], [name="${cssEscape(name)}[]"]`);
-        return field ? (field.closest('p, label, li, div') || field) : null;
+    const wrap = form.querySelector(`.wpcf7-form-control-wrap[data-name="${cssEscape(name)}"]`)
+        || form.querySelector(`[name="${cssEscape(name)}"], [name="${cssEscape(name)}[]"]`);
+    if (!wrap) return null;
+
+    const stop = 'form, .cf7mw-step, .cf7mw-steps, .cf7mw-wrapper, .wpcf7';
+    const climbable = new Set(['DIV', 'FIELDSET', 'P', 'LI', 'LABEL', 'SECTION']);
+    let block = wrap;
+    let node = wrap.parentElement;
+
+    while (node && !node.matches(stop) && climbable.has(node.tagName) && containsOnlyField(node, name)) {
+        block = node;
+        node = node.parentElement;
     }
-    const parent = wrap.parentElement;
-    if (!parent || parent.matches('form')) return wrap;
-    const wraps = parent.querySelectorAll(':scope > .wpcf7-form-control-wrap, :scope > span > .wpcf7-form-control-wrap, .wpcf7-form-control-wrap');
-    if (wraps.length === 1) return parent;
-    return wrap;
+
+    return block;
+}
+
+function containsOnlyField(node, name) {
+    const wraps = [...node.querySelectorAll('.wpcf7-form-control-wrap[data-name]')];
+    if (wraps.length) {
+        const names = new Set(wraps.map(wrap => wrap.dataset.name).filter(Boolean));
+        return names.size === 1 && names.has(name);
+    }
+
+    const names = new Set(
+        [...node.querySelectorAll('input[name], select[name], textarea[name]')]
+            .map(field => field.name.replace(/\[\]$/, ''))
+            .filter(fieldName => fieldName && !fieldName.startsWith('_wpcf7'))
+    );
+    return names.size === 1 && names.has(name);
 }
 
 function setHidden(block, hidden) {
